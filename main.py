@@ -2,6 +2,7 @@ import sqlalchemy
 import json
 import os
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 from models import create_table, Publisher, Book, Shop, Stock, Sale
 
 os.environ['name_sql'] = input('Название SQL: ')
@@ -29,19 +30,22 @@ for element in data:
     session.add(check_class(id=element.get('pk'), **element.get('fields')))
 session.commit()
 
-def find_info(name_publisher):
-    result = (session.query(Book.title, Shop.name, Sale.price, Sale.date_sale)
-              .join(Book.publisher)
+def find_info(publisher):
+    query = (session.query(Book.title, Shop.name, Sale.price, Sale.date_sale).select_from(Shop)
               .join(Stock)
-              .join(Shop)
-              .join(Sale)
-              .filter(Publisher.name == name_publisher).all())
+              .join(Book)
+              .join(Publisher)
+              .join(Sale))
+    if publisher.isdigit():
+        result = query.filter(Publisher.id == publisher)
+    else:
+        result = query.filter(Publisher.name == publisher)
     if result == []:
         print(f'Продаж по данному автору не найдено')
         return
     else:
         for name_book, name_shop, price, date_sale in result:
-            print(f'{name_book} | {name_shop} | {price} | {date_sale}')
+            print(f"{name_book: <40} | {name_shop: <10} | {price: <8} | {date_sale.strftime('%d-%m-%Y')}")
 session.close()
 
 if __name__ == '__main__':
